@@ -79,7 +79,7 @@ def copy_links_to_clipboard(links, URL):
         print("\n")
         print(f"{n} links have been successfully retrieved from the URL and copied and queued in JDownloader2\n"
               f"If you have counted less files being downloaded in the queue, manually check for those in the\n"
-              f"txt file. This is not an error from the script, rather the programm does not recognize download links\n"
+              f"txt file. This is not an error from the script, rather JDownloader2 does not recognize download links\n"
               f"within a download link.")
     else:
         print(links)
@@ -138,7 +138,7 @@ def run_jdownloader2():
             return
 
         try:
-            # Ejecutar JDownloader2
+            # Executes JDownloader2
             print(f"Attempting to start JDownloader2 from: {jdownloader_path}")
             subprocess.Popen([jdownloader_path], shell=True)
             print("JDownloader2 has started successfully.")
@@ -159,32 +159,49 @@ def main():
           "\n"
           "THIS SCRIPT HAS BEEN FULLY TESTED, AS PER NOW, MULTIPLE DOWNLOADS (FILES) CONTAINED\n"
           "WITHIN A SAME LINK (i.e. A WEBSITE CONTAINING OTHER DOWNLOAD LINKS) CANNOT BE AUTOMATICALLY\n"
-          "ADDED AND YOU'LL HAVE TO MANUALLY COPY THEM FROM THE 'TXT' FILE GENERATED NEXT TO THIS .exe\n"
+          "ADDED AND YOU'LL HAVE TO RE-RUN THE SCRIPT AT THE END AND PROVIDE THEIR OWN URL\n"
           "SUGGESTIONS WILL BE APPRECIATED. (mauefrod2307@gmail.com)\n"
           "\n")
     
-    URL = input("Provide the URL: ")
-    links = extract_link(URL)
+    while True:
+        URL = input("Provide the URL: ")
+        links = extract_link(URL)
 
-    if is_admin():
-        run_jdownloader2()
+        if is_admin():
+            run_jdownloader2()
 
-    else:
-        print("Attempting to restart the script with administrator privileges.")
+        else:
+            print("Attempting to restart the script with administrator privileges.")
+            
+            try:
+                script_path = os.path.abspath(__file__)
+                print(f"Re-executing the script with admin privileges: {script_path}")
+                ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, script_path, None, 1)
+
+            except Exception as e:
+                print(f"Error attempting to restart the script with administrator privileges: {e}")
+
+        time.sleep(5)
+        write_links_to_file(links, URL)
+
+        time.sleep(1)
+        copy_links_to_clipboard(links, URL)
         
-        try:
-            script_path = os.path.abspath(__file__)
-            print(f"Re-executing the script with admin privileges: {script_path}")
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, script_path, None, 1)
+        time.sleep(1)
+        continum = ""
+        while continum not in ["Y", "N"]:
+            continum = input("Would you like to provide another URL? (Or any linked that was not automatically added to JDownloader2?) ").capitalize()[0]
+            match continum:
+                case "Y":
+                    break
+                case "N":
+                    break
+                case _:
+                    print("Answer not recognized, please, answer with 'Y' or 'N'")
+        if continum != "Y":
+            print("Exiting...")
+            exit()
 
-        except Exception as e:
-            print(f"Error attempting to restart the script with administrator privileges: {e}")
-
-    time.sleep(5)
-    write_links_to_file(links, URL)
-
-    time.sleep(1)
-    copy_links_to_clipboard(links, URL)
     
 
 if __name__ == "__main__":
