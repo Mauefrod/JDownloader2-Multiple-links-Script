@@ -6,7 +6,7 @@ import sys
 import os
 import pyperclip
 import time
-
+import psutil
 
 # Gets URL status
 def status(url):
@@ -29,7 +29,7 @@ def html_code(url):
 
 
 # Retrieves links from URL (<a>)
-def grab_link(url):
+def extract_link(url):
     try:
         stat = status(url)
         if stat is not None and 200 <= stat < 300:  # 2xx
@@ -52,23 +52,28 @@ def grab_link(url):
         return "The Server has timed out, please check your bandwidth or contact website support"
 
 
-# Copies the link to the clipboard
+# Generates a progress bar so that is easier for the user to understand the completition.
 def print_progress_bar(completion_percentage, bar_length=40):
     filled_length = int(bar_length * completion_percentage // 100)
     bar = '█' * filled_length + '-' * (bar_length - filled_length)
     print(f'\rQueuing files |{bar}| {completion_percentage:.2f}% completed.', end='\r')
     sys.stdout.flush()
 
+
 def copy_links_to_clipboard(links, URL):  
+    # Ensures a list of links have been provided
     if isinstance(links, list):
-        n = 0
+        n = 0 # Counts every link iterated over, recalling that number at the end, so the user can make sure how many files have been ACTUALLY listed.
         total_files = len(links)
         for a in links:
+            if not jdownloader2_running():
+                print("JDownloader2 has stopped, stopping process.")
+                break
             completion_percentage = round((n / total_files) * 100)
             print_progress_bar(completion_percentage)
-            pyperclip.copy(f"{URL}{a}")
+            pyperclip.copy(f"{URL}{a}") # Adds the URL so that the merged link gets the "https://www.site.com//" protocol, otherwise ignored.
             n += 1
-            time.sleep(1.2)
+            time.sleep(0.4) # Waits before the next iteration so that Jdwonloader2 has enough time to catch the link. 
         # Ensures the filled bar is printed 
         print_progress_bar(100)
         print("\n")
@@ -94,6 +99,14 @@ def write_links_to_file(links, url, filename="links.txt"):
         print(links)
 
 
+
+def jdownloader2_running():
+    for process in psutil.process_iter(["name"]):
+        if process.info["name"] == "JDownloader2.exe":
+            return True
+    return False
+
+
 # Checks wheter or not the function is being used as admin
 def is_admin():
     try:
@@ -104,25 +117,37 @@ def is_admin():
 
 # Starts Jdownloader2
 def run_jdownloader2():
-    
-    jdownloader_path = input("Provide the path to your JDownloader2 installation: ") + r"\JDownloader2.exe"
+    if jdownloader2_running():
+        print("JDownloader2 is already running, no need to start it")
+    else:
+        # Checks wheter a jdownloader2 path exists already
+        try:
+            with open("jdownloader_path.txt", "r") as path:
+                content = path.read().strip()
+        except FileNotFoundError:
+            content = ""
+        if not content:
+                jdownloader_path = input("Provide the path to your JDownloader2 installation: ") + r"\JDownloader2.exe"
+                with open("jdownloader_path.txt", "w") as path:
+                    path.write(jdownloader_path)
+        else:
+            jdownloader_path = content
 
-    if not os.path.isfile(jdownloader_path):
-        print(f"The file does not exist at the specified path: {jdownloader_path}")
-        print("Please ensure the path includes the executable file, e.g., JDownloader2.exe")
-        return
+        if not os.path.isfile(jdownloader_path):
+            print(f"The file does not exist at the specified path: {jdownloader_path}")
+            return
 
-    try:
-        # Ejecutar JDownloader2
-        print(f"Attempting to start JDownloader2 from: {jdownloader_path}")
-        subprocess.Popen([jdownloader_path], shell=True)
-        print("JDownloader2 has started successfully.")
+        try:
+            # Ejecutar JDownloader2
+            print(f"Attempting to start JDownloader2 from: {jdownloader_path}")
+            subprocess.Popen([jdownloader_path], shell=True)
+            print("JDownloader2 has started successfully.")
 
-    except FileNotFoundError:
-        print(f"Could not find the executable file at the specified path: {jdownloader_path}")
+        except FileNotFoundError:
+            print(f"Could not find the executable file at the specified path: {jdownloader_path}")
 
-    except Exception as e:
-        print(f"An error occurred while trying to start JDownloader2: {e}")
+        except Exception as e:
+            print(f"An error occurred while trying to start JDownloader2: {e}")
 
 # Exectues the main code
 def main():
@@ -139,7 +164,7 @@ def main():
           "\n")
     
     URL = input("Provide the URL: ")
-    links = grab_link(URL)
+    links = extract_link(URL)
 
     if is_admin():
         run_jdownloader2()
@@ -162,7 +187,6 @@ def main():
     copy_links_to_clipboard(links, URL)
     
 
-
 if __name__ == "__main__":
     main()
-    input("Press Enter to exit...")  # Keeps the console open
+    input("Press Enter to exit...")  # Keeps the programm open
