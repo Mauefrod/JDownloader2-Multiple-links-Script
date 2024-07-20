@@ -1,6 +1,5 @@
 This script strips all the links from a website (<a "href"> tagged in the HTML) and extracts those links into a .txt file that can be accessed to check wheter the files are correctly downloading. 
 Furthermore, it opens JDownloader2 and lists these links to the "LinkGrabber" via "copying" those links to the clipboard.
-It may seem like it's working slow, but it is due to the //time.sleep()// statements, used to ensure that JDownloader grabs every link since it won't load many requests in <1s.
 
 Additionally, as I've pointed out in the code and instructions this script DOES NOT add multiple downloads contained within a same download link. 
 For instance: 
